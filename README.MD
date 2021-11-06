@@ -27,13 +27,46 @@ SELECT
   cumulative_confirmed AS total_positif,
   cumulative_deceased AS total_meninggal,
   cumulative_recovered AS total_sembuh,
-  (cumulative_coginfirmed - (cumulative_deceased + cumulative_recovered)) AS kasus_aktif
+  (cumulative_confirmed - (cumulative_deceased + cumulative_recovered)) AS kasus_aktif
 FROM
   `bigquery-public-data.covid19_open_data.covid19_open_data`
 WHERE
   country_name='Indonesia'
   AND aggregation_level=0
-  AND 
+  AND new_confirmed IS NOT NULL
 ORDER BY
   tanggal DESC
+
+Membuat table :
+CREATE OR REPLACE TABLE
+`focus-cairn-314003.covid19_indonesia.data` AS
+SELECT
+  date AS tanggal,
+  new_confirmed AS harian_baru,
+  cumulative_confirmed AS total_positif,
+  cumulative_deceased AS total_meninggal,
+  cumulative_recovered AS total_sembuh,
+  (cumulative_confirmed - (cumulative_deceased + cumulative_recovered)) AS kasus_aktif
+FROM
+  `bigquery-public-data.covid19_open_data.covid19_open_data`
+WHERE
+  country_name='Indonesia'
+  AND aggregation_level=0
+  AND new_confirmed IS NOT NULL
+ORDER BY
+  tanggal DESC
+
+Membuat model - harian :
+CREATE OR REPLACE MODEL
+  `focus-cairn-314003.covid19_indonesia.prediksi_kasus_harian` OPTIONS(MODEL_TYPE='ARIMA_PLUS',
+    TIME_SERIES_TIMESTAMP_COL='tanggal',
+    TIME_SERIES_DATA_COL='harian_baru' ) AS
+SELECT
+  tanggal,
+  harian_baru
+FROM
+  `focus-cairn-314003.covid19_indonesia.data`
+WHERE
+  tanggal BETWEEN DATE_SUB(CURRENT_DATE(),INTERVAL 5 WEEK)
+  AND DATE_SUB(CURRENT_DATE(),INTERVAL 1 WEEK)
 
